@@ -6,12 +6,6 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 export default defineConfig(() => {
   return {
     plugins: [qwikCity(), qwikVite(), tsconfigPaths()],
-    resolve: {
-      alias: {
-        // make octokit work in edge
-        'node-fetch': 'isomorphic-fetch'
-      }
-    },
     preview: {
       headers: {
         'Cache-Control': 'public, max-age=600',
