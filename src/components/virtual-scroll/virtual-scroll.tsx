@@ -26,7 +26,6 @@ export const useVirtualScroll = (virtState: {
     scrollOffset: number;
     range?: { startIndex: number; endIndex: number };
   };
-  updateCount: number;
   totalCount: number;
 }) => {
   useTask$(({ track }) => {
@@ -45,7 +44,6 @@ export const getVirt = (virtState: {
     scrollOffset: number;
     range?: { startIndex: number; endIndex: number };
   };
-  updateCount: number;
   totalCount: number;
 }) => {
   if (virtState._virt) {
@@ -108,7 +106,6 @@ export const VirtualScrollContainer = component$(
     const loadingData = useSignal(false);
     const virtState = useStore<{
       scrollElement: Signal<HTMLElement | undefined>;
-      updateCount: number;
       state: {
         scrollOffset: number;
         range?: { startIndex: number; endIndex: number };
@@ -117,7 +114,6 @@ export const VirtualScrollContainer = component$(
       _virt?: NoSerialize<Virtualizer<HTMLElement, Element>>;
     }>({
       scrollElement,
-      updateCount: 0,
       state: { scrollOffset: 0 },
       totalCount: initialData.value.totalCount,
     });
@@ -162,7 +158,6 @@ export const VirtualScrollContainer = component$(
       <div>
         {debug ? (
           <>
-            <div>Update count: {virtState.updateCount}</div>
             <div>Total count: {initialData.value.totalCount}</div>
             <div>Loading?: {loadingData.value ? "yes" : "no"}</div>
             <div>
