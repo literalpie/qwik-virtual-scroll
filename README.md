@@ -1,6 +1,6 @@
 # Qwik Virtual Scroll
 
-See the demo [here](https://qwik-virtual-scroll-literalpie.vercel.app).
+See the demo [here](https://fascinating-kelpie-e2bbeb.netlify.app/).
 
 This is a POC showing virtual scrolling and server pagination of a list of data.
 
