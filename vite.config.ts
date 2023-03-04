@@ -11,5 +11,11 @@ export default defineConfig(() => {
         'Cache-Control': 'public, max-age=600',
       },
     },
+    resolve: {
+      alias: {
+        // make octokit work in edge
+        'node-fetch': 'isomorphic-fetch'
+      }
+    },
   };
 });

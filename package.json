@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@tanstack/virtual-core": "^3.0.0-beta.52",
+    "isomorphic-fetch": "^3.0.0",
     "octokit": "^2.0.14"
   }
 }
