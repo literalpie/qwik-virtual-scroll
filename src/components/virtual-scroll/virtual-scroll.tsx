@@ -1,14 +1,12 @@
 import {
   component$,
   useSignal,
-  noSerialize,
-  type NoSerialize,
-  useStore,
   type Signal,
   useTask$,
   type QRL,
   type JSXNode,
   type HTMLAttributes,
+  $,
 } from "@builder.io/qwik";
 import { isBrowser } from "@builder.io/qwik/build";
 import {
@@ -18,60 +16,44 @@ import {
   elementScroll,
   type VirtualItem,
 } from "@tanstack/virtual-core";
+import { makeSerializable } from "./make-serializable";
 
-export const useVirtualScroll = (virtState: {
-  scrollElement: Signal<HTMLElement | undefined>;
-  _virt?: NoSerialize<Virtualizer<HTMLElement, Element>>;
-  state: {
-    scrollOffset: number;
-    range?: { startIndex: number; endIndex: number };
-  };
-  totalCount: number;
-}) => {
-  useTask$(({ track }) => {
-    track(() => virtState.scrollElement);
-    if (!virtState._virt && virtState.scrollElement.value) {
-      getVirt(virtState);
-    }
-  });
-  // referencing range seems to be required for it to be "seen"
-  virtState.state.range;
-};
-export const getVirt = (virtState: {
-  scrollElement: Signal<HTMLElement | undefined>;
-  _virt?: NoSerialize<Virtualizer<HTMLElement, Element>>;
-  state: {
-    scrollOffset: number;
-    range?: { startIndex: number; endIndex: number };
-  };
-  totalCount: number;
-}) => {
-  if (virtState._virt) {
-    return virtState._virt;
-  }
-
-  const virt = new Virtualizer({
-    initialRect: { height: 400, width: 700 },
-    count: virtState.totalCount,
-    estimateSize: () => 30,
-    getScrollElement: () => virtState.scrollElement.value ?? null,
-    scrollToFn: elementScroll,
-    observeElementRect: observeElementRect,
-    initialOffset: 0,
-    observeElementOffset: observeElementOffset,
-    onChange: (ev) => {
-      ev._willUpdate();
-      virtState.state = {
-        scrollOffset: ev.scrollOffset,
-        range: ev.range,
-      };
-    },
-  });
-  virt._didMount();
-  virt._willUpdate();
-  virtState._virt = noSerialize(virt);
-  return virtState._virt;
-};
+const { getSerializable: getVirt, useSerializable: useVirtualScroll } =
+  makeSerializable(
+    $(
+      (state: {
+        scrollElement: Signal<HTMLElement | undefined>;
+        scrollOffset: number;
+        range?: { startIndex: number; endIndex: number };
+        totalCount: number;
+      }) => {
+        const virt = new Virtualizer({
+          initialRect: { height: 400, width: 700 },
+          count: state.totalCount,
+          estimateSize: () => 30,
+          getScrollElement: () => state.scrollElement.value ?? null,
+          scrollToFn: elementScroll,
+          observeElementRect: observeElementRect,
+          initialOffset: 0,
+          observeElementOffset: observeElementOffset,
+          onChange: (ev) => {
+            ev._willUpdate();
+            // On first render, if we don't have this check, it will update state twice in one cycle, causing an error.
+            if (
+              state.range?.startIndex !== ev.range.startIndex ||
+              state.range?.endIndex !== ev.range.endIndex
+            ) {
+              state.range = ev.range;
+            }
+            state.scrollOffset = ev.scrollOffset;
+          },
+        });
+        virt._didMount();
+        virt._willUpdate();
+        return virt;
+      }
+    )
+  );
 
 export const VirtualScrollContainer = component$(
   ({
@@ -104,24 +86,11 @@ export const VirtualScrollContainer = component$(
     const loadedData = useSignal<string[]>([]);
     const scrollElement = useSignal<HTMLDivElement>();
     const loadingData = useSignal(false);
-    const virtState = useStore<{
-      scrollElement: Signal<HTMLElement | undefined>;
-      state: {
-        scrollOffset: number;
-        range?: { startIndex: number; endIndex: number };
-      };
-      totalCount: number;
-      _virt?: NoSerialize<Virtualizer<HTMLElement, Element>>;
-    }>({
+    const virtState = useVirtualScroll({
       scrollElement,
-      state: { scrollOffset: 0 },
+      scrollOffset: 0,
+      range: { startIndex: 0, endIndex: 13 },
       totalCount: initialData.value.totalCount,
-    });
-    useVirtualScroll(virtState);
-    const virt = useSignal<NoSerialize<Virtualizer<HTMLElement, Element>>>();
-    useTask$(({ track }) => {
-      track(() => virtState.scrollElement);
-      virt.value = getVirt(virtState);
     });
     useTask$(({ track }) => {
       track(() => initialData.value);
@@ -161,15 +130,15 @@ export const VirtualScrollContainer = component$(
             <div>Total count: {initialData.value.totalCount}</div>
             <div>Loading?: {loadingData.value ? "yes" : "no"}</div>
             <div>
-              visible range: {virt.value?.range?.startIndex}-
-              {virt.value?.range?.endIndex}
+              visible range: {virtState.state.range?.startIndex}-
+              {virtState.state.range?.endIndex}
             </div>
           </>
         ) : null}
         <div
           onScroll$={() => {
-            if (!virt.value) {
-              virt.value = getVirt(virtState);
+            if (!virtState.value) {
+              getVirt(virtState);
             }
           }}
           style={{ height: "200px", overflow: "auto" }}
@@ -177,12 +146,12 @@ export const VirtualScrollContainer = component$(
         >
           <div
             style={{
-              height: `${virt?.value?.getTotalSize() ?? 0}px`,
+              height: `${virtState.value?.getTotalSize() ?? 0}px`,
               width: "100%",
               position: "relative",
             }}
           >
-            {virt.value?.getVirtualItems().map((item) => {
+            {virtState.value?.getVirtualItems().map((item) => {
               return itemRenderer(item, loadedData.value[item.index], {
                 key: item.key,
                 style: {
